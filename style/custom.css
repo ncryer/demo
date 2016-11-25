@@ -1,0 +1,13 @@
+.mdl-layout__drawer {
+  width: 350px;
+}
+
+.mdl-grid.center-items {
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.map {
+  height: 80%;
+}
