@@ -22,20 +22,31 @@
             <div class="mdl-grid center-items">
               <span class="mdl-layout-title">Indtast addresse eller CVR</span>
             </div>
+
+
             <div class="mdl-grid center-items">
               <!-- search box -->
               <form action="#">
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
-                  <label class="mdl-button mdl-js-button mdl-button--icon" for="sample6">
-                    <i class="material-icons">search</i>
-                  </label>
-                  <div class="mdl-textfield__expandable-holder">
-                    <input class="mdl-textfield__input" type="text" id="sample6">
-                    <label class="mdl-textfield__label" for="sample-expandable">Expandable Input</label>
-                  </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="adrField">
+                  <label class="mdl-textfield__label" for="sample3">Adresse</label>
                 </div>
               </form>
+
+              <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="cvrField">
+                  <label class="mdl-textfield__label" for="sample3">CVR</label>
+                </div>
+                <br />
+                <br />
+                <button id="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+                  Søg
+                </button>
+              </form>
             </div>
+
+
 
 
 
@@ -53,13 +64,14 @@
           <!-- MAP -->
           <div id="map" class="map"></div>
 
+
+          <!-- Plot creation appends to this div, so it's gotta be there  -->
+          <div id="plotContainer" style="z-index: 9999;"></div>
         </div>
       </main>
     </div>
 
 
-    <!-- Plot creation appends to this div, so it's gotta be there  -->
-    <div id="plotContainer" style="z-index: 9999;"></div>
 
     <script src="node_modules/jquery/dist/jquery.js"></script>
     <script defer src="https://code.getmdl.io/1.2.1/material.min.js"></script>
@@ -69,14 +81,60 @@
     <script src="node_modules/metrics-graphics/dist/metricsgraphics.js"></script>
     <script src="libs/funcs.js"></script>
     <!-- data -->
-    <script src="data/test.json"></script>
-
+    <script src="node_modules/sql.js/js/sql.js"></script>
+    <script src="node_modules/browserfs/dist/browserfs.js"></script>
     <script>
+
+    var endpointBaseUrl = 'http://localhost:3000'
+    // Button logic
+    $(document).ready(function(){
+      $("#submit").click(function(){
+        // Get values from adrField and cvrField
+        var adr = $("#adrField").val();
+        var cvr = $("#cvrField").val();
+
+        if( adr.length > cvr.length ){
+          // Query the address endpoint
+          var endpoint = endpointBaseUrl + "/adr";
+          $.ajax({
+            url:endpoint,
+            data: {'adresse':adr},
+            success: function(data){
+              var test = collectIDs(data);
+              console.log(test);
+            }
+          });
+        } else {
+          // Query the CVR endpoint
+          var endpoint = endpointBaseUrl + "/cvr";
+          $.ajax({
+            url: endpoint,
+            data: {'cvr': cvr},
+            success: function(data){
+              // Do stuff with data
+              var TS = getTimeSeries(data[0]["ID"]);
+              
+            }
+          });
+        }
+
+
+      });
+    });
+
 
     var layers = [
       // Background map
       new ol.layer.Tile({
         source: new ol.source.OSM()
+      }),
+
+      new ol.layer.Tile({
+        source: new ol.source.TileWMS({
+          url: 'http://dev-geonode.vfltest.dk/geoserver/segesdemo/wms',
+          params: {'LAYERS':'segesdemo:adr_marker', 'TILED':true},
+          serverType: 'geoserver'
+        })
       })
     ];
 
@@ -89,8 +147,15 @@
       })
     });
 
-    var search = getData(3);
-    createPlot(search, "testplot");
+    // var search = getData(3);
+    // createPlot(search, "testplot");
+    //
+    // BrowserFS.install(window);
+    // var inmem = new BrowserFS.FileSystem.InMemory();
+    // BrowserFS.initialize(inmem);
+    //
+    // var testdb = loadDB('/data/timeseries.sqlite');
+
     </script>
 
   </body>

@@ -11,3 +11,8 @@
 .map {
   height: 80%;
 }
+
+.mdl-textfield__input {
+  color: !important;
+  font-size: 20px;
+}
