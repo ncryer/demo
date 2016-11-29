@@ -20,7 +20,7 @@
 
             <!-- title -->
             <div class="mdl-grid center-items">
-              <span class="mdl-layout-title">Indtast addresse eller CVR</span>
+              <span class="mdl-layout-title">Indtast adresse eller CVR:</span>
             </div>
 
 
@@ -45,17 +45,19 @@
                 </button>
               </form>
             </div>
-
-
-
-
-
-          <div class="mdl-layout__header-column">
-
-
-          </div>
         </header>
-        <span class="mdl-layout-title">Here's something!</span>
+
+
+        <!-- Make a table -->
+        <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp full-width" id="containerTable">
+        <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">Marknr</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
       </div>
 
       <main class="mdl-layout__content">
@@ -66,6 +68,7 @@
 
 
           <!-- Plot creation appends to this div, so it's gotta be there  -->
+          <div id="plotContainerVisible" style="z-index: 9999;"></div>
           <div id="plotContainer" style="z-index: 9999;"></div>
         </div>
       </main>
@@ -76,18 +79,17 @@
     <script src="node_modules/jquery/dist/jquery.js"></script>
     <script defer src="https://code.getmdl.io/1.2.1/material.min.js"></script>
     <script src="https://openlayers.org/en/v3.19.0/build/ol.js"></script>
-    <script src="libs/defiant.min.js"></script>
+
     <script src="node_modules/d3/build/d3.js"></script>
     <script src="node_modules/metrics-graphics/dist/metricsgraphics.js"></script>
     <script src="libs/funcs.js"></script>
-    <!-- data -->
-    <script src="node_modules/sql.js/js/sql.js"></script>
-    <script src="node_modules/browserfs/dist/browserfs.js"></script>
     <script>
 
-    var endpointBaseUrl = 'http://localhost:3000'
+    var endpointBaseUrl = 'http://localhost:3000';
+     
     // Button logic
     $(document).ready(function(){
+      localStorage.clear();
       $("#submit").click(function(){
         // Get values from adrField and cvrField
         var adr = $("#adrField").val();
@@ -96,28 +98,40 @@
         if( adr.length > cvr.length ){
           // Query the address endpoint
           var endpoint = endpointBaseUrl + "/adr";
-          $.ajax({
-            url:endpoint,
-            data: {'adresse':adr},
-            success: function(data){
-              var test = collectIDs(data);
-              console.log(test);
-            }
-          });
+          var dataPacket = {'adresse': adr};
         } else {
           // Query the CVR endpoint
           var endpoint = endpointBaseUrl + "/cvr";
-          $.ajax({
-            url: endpoint,
-            data: {'cvr': cvr},
-            success: function(data){
-              // Do stuff with data
-              var TS = getTimeSeries(data[0]["ID"]);
-              
-            }
-          });
+          var dataPacket = {'cvr': cvr};
         }
+        var rows;
 
+        $.ajax({
+          url: endpoint,
+          data: dataPacket,
+          success: function(data){
+
+            data.forEach(function(dat){
+              var marknr = dat["Marknr"];
+              var idStr = dat['ID'];
+              insertTableRow(marknr, idStr);
+            });
+            rows = data;
+            var idArray = collectIDs(data);
+
+            // Start loading polygons here, maybe show spinner
+            console.log("Loading polygons...");
+            cqlQuery(idArray);
+            // Create all timeseries plots and append
+            var numPlots = idArray.length;
+            for(i=0; i < numPlots; i++){
+              // Get timeseries of ID i and create plot
+              var plotName = "Timeseries_plot" + idArray[i];
+              getTimeSeries(idArray[i], plotName, data[i])
+            };
+
+          }
+        });
 
       });
     });
@@ -127,14 +141,6 @@
       // Background map
       new ol.layer.Tile({
         source: new ol.source.OSM()
-      }),
-
-      new ol.layer.Tile({
-        source: new ol.source.TileWMS({
-          url: 'http://dev-geonode.vfltest.dk/geoserver/segesdemo/wms',
-          params: {'LAYERS':'segesdemo:adr_marker', 'TILED':true},
-          serverType: 'geoserver'
-        })
       })
     ];
 
@@ -147,14 +153,6 @@
       })
     });
 
-    // var search = getData(3);
-    // createPlot(search, "testplot");
-    //
-    // BrowserFS.install(window);
-    // var inmem = new BrowserFS.FileSystem.InMemory();
-    // BrowserFS.initialize(inmem);
-    //
-    // var testdb = loadDB('/data/timeseries.sqlite');
 
     </script>
 
